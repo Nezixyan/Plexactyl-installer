@@ -26,31 +26,38 @@ read -p "Введите номер установщика: " INSTALLER_CHOICE
 if [[ $INSTALLER_CHOICE == "1" ]]; then
     # Обновление системы
     echo -e "\e[1;32mОбновление системы...\e[0m"
-    apt-get update && apt-get upgrade -y
+    apt-get update && apt-get upgrade -y &
+    show_loader $! "Обновление системы"
 
     # Установка необходимых зависимостей
     echo -e "\e[1;32mУстановка необходимых зависимостей...\e[0m"
-    apt-get install -y git curl unzip wget
+    apt-get install -y git curl unzip wget &
+    show_loader $! "Установка необходимых зависимостей"
 
     # Установка PHP и необходимых расширений
     echo -e "\e[1;32mУстановка PHP и необходимых расширений...\e[0m"
-    apt-get install -y php php-cli php-gd php-mysql php-pdo php-mbstring php-tokenizer php-bcmath php-xml php-fpm php-curl php-zip
+    apt-get install -y php php-cli php-gd php-mysql php-pdo php-mbstring php-tokenizer php-bcmath php-xml php-fpm php-curl php-zip &
+    show_loader $! "Установка PHP и необходимых расширений"
 
     # Установка Composer
     echo -e "\e[1;32mУстановка Composer...\e[0m"
-    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &
+    show_loader $! "Установка Composer"
 
     # Установка Nginx
     echo -e "\e[1;32mУстановка Nginx...\e[0m"
-    apt-get install -y nginx
+    apt-get install -y nginx &
+    show_loader $! "Установка Nginx"
 
     # Установка MySQL
     echo -e "\e[1;32mУстановка MySQL...\e[0m"
-    apt-get install -y mysql-server
+    apt-get install -y mysql-server &
+    show_loader $! "Установка MySQL"
 
     # Настройка MySQL
     echo -e "\e[1;32mНастройка MySQL...\e[0m"
-    mysql_secure_installation
+    mysql_secure_installation &
+    show_loader $! "Настройка MySQL"
 
     # Создание базы данных и пользователя для Plexactyl
     echo -e "\e[1;32mСоздание базы данных и пользователя для Plexactyl...\e[0m"
@@ -66,14 +73,16 @@ if [[ $INSTALLER_CHOICE == "1" ]]; then
 
     # Клонирование репозитория Plexactyl
     echo -e "\e[1;32mКлонирование репозитория Plexactyl...\e[0m"
-    git clone https://github.com/NinoviumLabs/plexactyl.git /var/www/plexactyl
+    git clone https://github.com/NinoviumLabs/plexactyl.git /var/www/plexactyl &
+    show_loader $! "Клонирование репозитория Plexactyl"
 
     # Переход в директорию Plexactyl
     cd /var/www/plexactyl
 
     # Установка зависимостей через Composer
     echo -e "\e[1;32mУстановка зависимостей через Composer...\e[0m"
-    composer install --no-dev --optimize-autoloader
+    composer install --no-dev --optimize-autoloader &
+    show_loader $! "Установка зависимостей через Composer"
 
     # Настройка .env файла
     echo -e "\e[1;32mНастройка .env файла...\e[0m"
@@ -87,7 +96,8 @@ if [[ $INSTALLER_CHOICE == "1" ]]; then
 
     # Запуск миграций и сидов
     echo -e "\e[1;32mЗапуск миграций и сидов...\e[0m"
-    php artisan migrate --seed --force
+    php artisan migrate --seed --force &
+    show_loader $! "Запуск миграций и сидов"
 
     # Настройка Nginx
     echo -e "\e[1;32mНастройка Nginx...\e[0m"
@@ -136,12 +146,15 @@ EOF
     # Установка Node.js и npm
     echo -e "\e[1;32mУстановка Node.js и npm...\e[0m"
     curl -sL https://deb.nodesource.com/setup_14.x | bash -
-    apt-get install -y nodejs
+    apt-get install -y nodejs &
+    show_loader $! "Установка Node.js и npm"
 
     # Установка зависимостей Node.js
     echo -e "\e[1;32mУстановка зависимостей Node.js...\e[0m"
-    npm install --prefix /var/www/plexactyl
-    npm run --prefix /var/www/plexactyl build
+    npm install --prefix /var/www/plexactyl &
+    show_loader $! "Установка зависимостей Node.js"
+    npm run --prefix /var/www/plexactyl build &
+    show_loader $! "Сборка зависимостей Node.js"
 
     # Настройка прав доступа
     echo -e "\e[1;32mНастройка прав доступа...\e[0m"
@@ -153,11 +166,13 @@ EOF
     if [[ $LETSENCRYPT == "y" || $LETSENCRYPT == "Y" ]]; then
         # Установка Certbot
         echo -e "\e[1;32mУстановка Certbot...\e[0m"
-        apt-get install -y certbot python3-certbot-nginx
+        apt-get install -y certbot python3-certbot-nginx &
+        show_loader $! "Установка Certbot"
 
         # Создание сертификата Let's Encrypt
         echo -e "\e[1;32mСоздание сертификата Let's Encrypt...\e[0m"
-        certbot --nginx -d ${SERVER_NAME}
+        certbot --nginx -d ${SERVER_NAME} &
+        show_loader $! "Создание сертификата Let's Encrypt"
 
         # Перезапуск Nginx
         systemctl restart nginx
@@ -170,3 +185,18 @@ elif [[ $INSTALLER_CHOICE == "2" ]]; then
 else
     echo -e "\e[1;31mНеверный выбор. Пожалуйста, выберите 1 или 2.\e[0m"
 fi
+
+# Функция для отображения лоадера
+show_loader() {
+    local pid=$1
+    local message=$2
+    local delay=0.1
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf "\e[1;33m[%c] %s...\e[0m\r" "$spinstr" "$message"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+    done
+    printf "\e[1;32m[✓] %s завершено.\e[0m\n" "$message"
+}
