@@ -17,76 +17,83 @@ _|    _|    _|_|_|  _|        _|          _|_|    _|    _|_|_|    _|_|_|      _|
                 _|                                _|                               
 \e[0m"
 
-# Обновление системы
-echo -e "\e[1;32mОбновление системы...\e[0m"
-apt-get update && apt-get upgrade -y
+# Выбор установщика
+echo -e "\e[1;32mВыберите установщик:\e[0m"
+echo -e "1. Plexactyl"
+echo -e "2. Pterodactyl (в разработке)"
+read -p "Введите номер установщика: " INSTALLER_CHOICE
 
-# Установка необходимых зависимостей
-echo -e "\e[1;32mУстановка необходимых зависимостей...\e[0m"
-apt-get install -y git curl unzip wget
+if [[ $INSTALLER_CHOICE == "1" ]]; then
+    # Обновление системы
+    echo -e "\e[1;32mОбновление системы...\e[0m"
+    apt-get update && apt-get upgrade -y
 
-# Установка PHP и необходимых расширений
-echo -e "\e[1;32mУстановка PHP и необходимых расширений...\e[0m"
-apt-get install -y php php-cli php-gd php-mysql php-pdo php-mbstring php-tokenizer php-bcmath php-xml php-fpm php-curl php-zip
+    # Установка необходимых зависимостей
+    echo -e "\e[1;32mУстановка необходимых зависимостей...\e[0m"
+    apt-get install -y git curl unzip wget
 
-# Установка Composer
-echo -e "\e[1;32mУстановка Composer...\e[0m"
-curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    # Установка PHP и необходимых расширений
+    echo -e "\e[1;32mУстановка PHP и необходимых расширений...\e[0m"
+    apt-get install -y php php-cli php-gd php-mysql php-pdo php-mbstring php-tokenizer php-bcmath php-xml php-fpm php-curl php-zip
 
-# Установка Nginx
-echo -e "\e[1;32mУстановка Nginx...\e[0m"
-apt-get install -y nginx
+    # Установка Composer
+    echo -e "\e[1;32mУстановка Composer...\e[0m"
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Установка MySQL
-echo -e "\e[1;32mУстановка MySQL...\e[0m"
-apt-get install -y mysql-server
+    # Установка Nginx
+    echo -e "\e[1;32mУстановка Nginx...\e[0m"
+    apt-get install -y nginx
 
-# Настройка MySQL
-echo -e "\e[1;32mНастройка MySQL...\e[0m"
-mysql_secure_installation
+    # Установка MySQL
+    echo -e "\e[1;32mУстановка MySQL...\e[0m"
+    apt-get install -y mysql-server
 
-# Создание базы данных и пользователя для Plexactyl
-echo -e "\e[1;32mСоздание базы данных и пользователя для Plexactyl...\e[0m"
-read -p "Введите имя базы данных: " DB_NAME
-read -p "Введите имя пользователя базы данных: " DB_USER
-read -sp "Введите пароль пользователя базы данных(после этого может потребовать еще 4 раза пароль): " DB_PASS
-echo
+    # Настройка MySQL
+    echo -e "\e[1;32mНастройка MySQL...\e[0m"
+    mysql_secure_installation
 
-mysql -u root -p -e "CREATE DATABASE ${DB_NAME};"
-mysql -u root -p -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
-mysql -u root -p -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-mysql -u root -p -e "FLUSH PRIVILEGES;"
+    # Создание базы данных и пользователя для Plexactyl
+    echo -e "\e[1;32mСоздание базы данных и пользователя для Plexactyl...\e[0m"
+    read -p "Введите имя базы данных: " DB_NAME
+    read -p "Введите имя пользователя базы данных: " DB_USER
+    read -sp "Введите пароль пользователя базы данных: " DB_PASS
+    echo
 
-# Клонирование репозитория Plexactyl
-echo -e "\e[1;32mКлонирование репозитория Plexactyl...\e[0m"
-git clone https://github.com/NinoviumLabs/plexactyl.git /var/www/plexactyl
+    mysql -u root -p -e "CREATE DATABASE ${DB_NAME};"
+    mysql -u root -p -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
+    mysql -u root -p -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
+    mysql -u root -p -e "FLUSH PRIVILEGES;"
 
-# Переход в директорию Plexactyl
-cd /var/www/plexactyl
+    # Клонирование репозитория Plexactyl
+    echo -e "\e[1;32mКлонирование репозитория Plexactyl...\e[0m"
+    git clone https://github.com/NinoviumLabs/plexactyl.git /var/www/plexactyl
 
-# Установка зависимостей через Composer
-echo -e "\e[1;32mУстановка зависимостей через Composer...\e[0m"
-composer install --no-dev --optimize-autoloader
+    # Переход в директорию Plexactyl
+    cd /var/www/plexactyl
 
-# Настройка .env файла
-echo -e "\e[1;32mНастройка .env файла...\e[0m"
-cp .env.example .env
-php artisan key:generate
+    # Установка зависимостей через Composer
+    echo -e "\e[1;32mУстановка зависимостей через Composer...\e[0m"
+    composer install --no-dev --optimize-autoloader
 
-# Настройка базы данных в .env файле
-sed -i "s/DB_DATABASE=homestead/DB_DATABASE=${DB_NAME}/" .env
-sed -i "s/DB_USERNAME=homestead/DB_USERNAME=${DB_USER}/" .env
-sed -i "s/DB_PASSWORD=secret/DB_PASSWORD=${DB_PASS}/" .env
+    # Настройка .env файла
+    echo -e "\e[1;32mНастройка .env файла...\e[0m"
+    cp .env.example .env
+    php artisan key:generate
 
-# Запуск миграций и сидов
-echo -e "\e[1;32mЗапуск миграций и сидов...\e[0m"
-php artisan migrate --seed --force
+    # Настройка базы данных в .env файле
+    sed -i "s/DB_DATABASE=homestead/DB_DATABASE=${DB_NAME}/" .env
+    sed -i "s/DB_USERNAME=homestead/DB_USERNAME=${DB_USER}/" .env
+    sed -i "s/DB_PASSWORD=secret/DB_PASSWORD=${DB_PASS}/" .env
 
-# Настройка Nginx
-echo -e "\e[1;32mНастройка Nginx...\e[0m"
-read -p "Введите ваш домен или IP-адрес: " SERVER_NAME
+    # Запуск миграций и сидов
+    echo -e "\e[1;32mЗапуск миграций и сидов...\e[0m"
+    php artisan migrate --seed --force
 
-cat <<EOF > /etc/nginx/sites-available/plexactyl
+    # Настройка Nginx
+    echo -e "\e[1;32mНастройка Nginx...\e[0m"
+    read -p "Введите ваш домен или IP-адрес: " SERVER_NAME
+
+    cat <<EOF > /etc/nginx/sites-available/plexactyl
 server {
     listen 80;
     server_name ${SERVER_NAME};
@@ -121,39 +128,45 @@ server {
 }
 EOF
 
-# Активация конфигурации Nginx
-ln -s /etc/nginx/sites-available/plexactyl /etc/nginx/sites-enabled/
-nginx -t
-systemctl restart nginx
-
-# Установка Node.js и npm
-echo -e "\e[1;32mУстановка Node.js и npm...\e[0m"
-curl -sL https://deb.nodesource.com/setup_14.x | bash -
-apt-get install -y nodejs
-
-# Установка зависимостей Node.js
-echo -e "\e[1;32mУстановка зависимостей Node.js...\e[0m"
-npm install --prefix /var/www/plexactyl
-npm run --prefix /var/www/plexactyl build
-
-# Настройка прав доступа
-echo -e "\e[1;32mНастройка прав доступа...\e[0m"
-chown -R www-data:www-data /var/www/plexactyl/storage
-chown -R www-data:www-data /var/www/plexactyl/bootstrap/cache
-
-# Выбор создания сертификата Let's Encrypt
-read -p "Хотите создать сертификат Let's Encrypt? (y/n): " LETSENCRYPT
-if [[ $LETSENCRYPT == "y" || $LETSENCRYPT == "Y" ]]; then
-    # Установка Certbot
-    echo -e "\e[1;32mУстановка Certbot...\e[0m"
-    apt-get install -y certbot python3-certbot-nginx
-
-    # Создание сертификата Let's Encrypt
-    echo -e "\e[1;32mСоздание сертификата Let's Encrypt...\e[0m"
-    certbot --nginx -d ${SERVER_NAME}
-
-    # Перезапуск Nginx
+    # Активация конфигурации Nginx
+    ln -s /etc/nginx/sites-available/plexactyl /etc/nginx/sites-enabled/
+    nginx -t
     systemctl restart nginx
-fi
 
-echo -e "\e[1;32mУстановка Plexactyl завершена!\e[0m"
+    # Установка Node.js и npm
+    echo -e "\e[1;32mУстановка Node.js и npm...\e[0m"
+    curl -sL https://deb.nodesource.com/setup_14.x | bash -
+    apt-get install -y nodejs
+
+    # Установка зависимостей Node.js
+    echo -e "\e[1;32mУстановка зависимостей Node.js...\e[0m"
+    npm install --prefix /var/www/plexactyl
+    npm run --prefix /var/www/plexactyl build
+
+    # Настройка прав доступа
+    echo -e "\e[1;32mНастройка прав доступа...\e[0m"
+    chown -R www-data:www-data /var/www/plexactyl/storage
+    chown -R www-data:www-data /var/www/plexactyl/bootstrap/cache
+
+    # Выбор создания сертификата Let's Encrypt
+    read -p "Хотите создать сертификат Let's Encrypt? (y/n): " LETSENCRYPT
+    if [[ $LETSENCRYPT == "y" || $LETSENCRYPT == "Y" ]]; then
+        # Установка Certbot
+        echo -e "\e[1;32mУстановка Certbot...\e[0m"
+        apt-get install -y certbot python3-certbot-nginx
+
+        # Создание сертификата Let's Encrypt
+        echo -e "\e[1;32mСоздание сертификата Let's Encrypt...\e[0m"
+        certbot --nginx -d ${SERVER_NAME}
+
+        # Перезапуск Nginx
+        systemctl restart nginx
+    fi
+
+    echo -e "\e[1;32mУстановка Plexactyl завершена!\e[0m"
+
+elif [[ $INSTALLER_CHOICE == "2" ]]; then
+    echo -e "\e[1;31mФункция установки Pterodactyl в разработке. Пожалуйста, выберите Plexactyl.\e[0m"
+else
+    echo -e "\e[1;31mНеверный выбор. Пожалуйста, выберите 1 или 2.\e[0m"
+fi
