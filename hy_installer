@@ -16,6 +16,61 @@ if ! command -v dialog &> /dev/null; then
     sudo apt-get install -y dialog
 fi
 
+# Выбор языка
+lang=$(dialog --clear --backtitle "HyProject Installer" \
+    --title "Выберите язык / Choose language" \
+    --menu "Выберите язык / Choose language:" 10 40 2 \
+    1 "Русский" \
+    2 "English" 2>&1 >/dev/tty)
+clear
+
+# Локализация текста
+if [ "$lang" == "1" ]; then
+    # Русский язык
+    lang_backtitle="HyProject Installer"
+    lang_title="Выберите панель управления или систему"
+    lang_menu="Выберите один из вариантов:"
+    lang_exit="Выход"
+    lang_pterodactyl="Pterodactyl"
+    lang_plexactyl="Plexactyl"
+    lang_control_panel="Control Panel"
+    lang_fastpanel="FastPanel"
+    lang_proxy_system="Прокси-система"
+    lang_nginx_config="Настройка Nginx"
+    lang_db_config="Настройка базы данных"
+    lang_domain="Введите доменное имя:"
+    lang_db_name="Введите имя базы данных:"
+    lang_db_user="Введите имя пользователя базы данных:"
+    lang_db_password="Введите пароль для базы данных:"
+    lang_installed="установлен."
+
+    # Установка русской локали
+    echo "Установка русской локали..."
+    sudo apt-get update
+    sudo apt-get install -y locales
+    sudo locale-gen ru_RU.UTF-8
+    sudo update-locale LANG=ru_RU.UTF-8
+    echo "Русская локаль установлена."
+else
+    # English
+    lang_backtitle="HyProject Installer"
+    lang_title="Choose a control panel or system"
+    lang_menu="Choose one of the options:"
+    lang_exit="Exit"
+    lang_pterodactyl="Pterodactyl"
+    lang_plexactyl="Plexactyl"
+    lang_control_panel="Control Panel"
+    lang_fastpanel="FastPanel"
+    lang_proxy_system="Proxy System"
+    lang_nginx_config="Nginx Configuration"
+    lang_db_config="Database Configuration"
+    lang_domain="Enter domain name:"
+    lang_db_name="Enter database name:"
+    lang_db_user="Enter database username:"
+    lang_db_password="Enter database password:"
+    lang_installed="installed."
+fi
+
 # Функция для установки Pterodactyl
 install_pterodactyl() {
     echo "Установка Pterodactyl..."
@@ -24,25 +79,25 @@ install_pterodactyl() {
     sudo apt-get install -y curl git unzip
 
     # Настройка Nginx
-    nginx_config=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка Nginx для Pterodactyl" \
-        --inputbox "Введите доменное имя для Pterodactyl:" 10 60 2>&1 >/dev/tty)
+    nginx_config=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_nginx_config для Pterodactyl" \
+        --inputbox "$lang_domain" 10 60 2>&1 >/dev/tty)
     clear
 
     # Настройка базы данных
-    db_name=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка базы данных для Pterodactyl" \
-        --inputbox "Введите имя базы данных:" 10 60 2>&1 >/dev/tty)
+    db_name=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_db_config для Pterodactyl" \
+        --inputbox "$lang_db_name" 10 60 2>&1 >/dev/tty)
     clear
 
-    db_user=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка базы данных для Pterodactyl" \
-        --inputbox "Введите имя пользователя базы данных:" 10 60 2>&1 >/dev/tty)
+    db_user=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_db_config для Pterodactyl" \
+        --inputbox "$lang_db_user" 10 60 2>&1 >/dev/tty)
     clear
 
-    db_password=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка базы данных для Pterodactyl" \
-        --passwordbox "Введите пароль для базы данных:" 10 60 2>&1 >/dev/tty)
+    db_password=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_db_config для Pterodactyl" \
+        --passwordbox "$lang_db_password" 10 60 2>&1 >/dev/tty)
     clear
 
     # Скачивание и установка Pterodactyl
@@ -87,7 +142,7 @@ EOF"
     sudo mysql -e "GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';"
     sudo mysql -e "FLUSH PRIVILEGES;"
 
-    echo "Pterodactyl установлен."
+    echo "Pterodactyl $lang_installed"
 }
 
 # Функция для установки Plexactyl
@@ -98,25 +153,25 @@ install_plexactyl() {
     sudo apt-get install -y curl git unzip
 
     # Настройка Nginx
-    nginx_config=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка Nginx для Plexactyl" \
-        --inputbox "Введите доменное имя для Plexactyl:" 10 60 2>&1 >/dev/tty)
+    nginx_config=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_nginx_config для Plexactyl" \
+        --inputbox "$lang_domain" 10 60 2>&1 >/dev/tty)
     clear
 
     # Настройка базы данных
-    db_name=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка базы данных для Plexactyl" \
-        --inputbox "Введите имя базы данных:" 10 60 2>&1 >/dev/tty)
+    db_name=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_db_config для Plexactyl" \
+        --inputbox "$lang_db_name" 10 60 2>&1 >/dev/tty)
     clear
 
-    db_user=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка базы данных для Plexactyl" \
-        --inputbox "Введите имя пользователя базы данных:" 10 60 2>&1 >/dev/tty)
+    db_user=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_db_config для Plexactyl" \
+        --inputbox "$lang_db_user" 10 60 2>&1 >/dev/tty)
     clear
 
-    db_password=$(dialog --clear --backtitle "HyProject Installer" \
-        --title "Настройка базы данных для Plexactyl" \
-        --passwordbox "Введите пароль для базы данных:" 10 60 2>&1 >/dev/tty)
+    db_password=$(dialog --clear --backtitle "$lang_backtitle" \
+        --title "$lang_db_config для Plexactyl" \
+        --passwordbox "$lang_db_password" 10 60 2>&1 >/dev/tty)
     clear
 
     # Скачивание и установка Plexactyl
@@ -161,7 +216,7 @@ EOF"
     sudo mysql -e "GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';"
     sudo mysql -e "FLUSH PRIVILEGES;"
 
-    echo "Plexactyl установлен."
+    echo "Plexactyl $lang_installed"
 }
 
 # Функция для установки Control Panel
@@ -176,7 +231,7 @@ install_control_panel() {
     composer install --no-dev --optimize-autoloader
     cp .env.example .env
     php artisan key:generate --force
-    echo "Control Panel установлен."
+    echo "Control Panel $lang_installed"
 }
 
 # Функция для установки FastPanel
@@ -191,7 +246,7 @@ install_fastpanel() {
     composer install --no-dev --optimize-autoloader
     cp .env.example .env
     php artisan key:generate --force
-    echo "FastPanel установлен."
+    echo "FastPanel $lang_installed"
 }
 
 # Функция для установки прокси-системы
@@ -206,21 +261,21 @@ install_proxy_system() {
     composer install --no-dev --optimize-autoloader
     cp .env.example .env
     php artisan key:generate --force
-    echo "Прокси-система установлена."
+    echo "Прокси-система $lang_installed"
 }
 
 # Главное меню
 main_menu() {
     while true; do
-        choice=$(dialog --clear --backtitle "HyProject Installer" \
-            --title "Выберите панель управления или систему" \
-            --menu "Выберите один из вариантов:" 15 60 6 \
-            1 "Pterodactyl" \
-            2 "Plexactyl" \
-            3 "Control Panel" \
-            4 "FastPanel" \
-            5 "Прокси-система" \
-            6 "Выход" 2>&1 >/dev/tty)
+        choice=$(dialog --clear --backtitle "$lang_backtitle" \
+            --title "$lang_title" \
+            --menu "$lang_menu" 15 60 6 \
+            1 "$lang_pterodactyl" \
+            2 "$lang_plexactyl" \
+            3 "$lang_control_panel" \
+            4 "$lang_fastpanel" \
+            5 "$lang_proxy_system" \
+            6 "$lang_exit" 2>&1 >/dev/tty)
 
         clear
         case $choice in
