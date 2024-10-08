@@ -1,294 +1,111 @@
 #!/bin/bash
 
-# ASCII-арт
-cat << "EOF"
-_|    _|            _|_|_|                        _|                        _|      
-_|    _|  _|    _|  _|    _|  _|  _|_|    _|_|          _|_|      _|_|_|  _|_|_|_|  
-_|_|_|_|  _|    _|  _|_|_|    _|_|      _|    _|  _|  _|_|_|_|  _|          _|      
-_|    _|  _|    _|  _|        _|        _|    _|  _|  _|        _|          _|      
-_|    _|    _|_|_|  _|        _|          _|_|    _|    _|_|_|    _|_|_|      _|_|
+# Функция для отображения сообщений
+show_message() {
+    echo "----------------------------------------"
+    echo "$1"
+    echo "----------------------------------------"
+}
+
+# Функция для проверки успешности выполнения команды
+check_success() {
+    if [ $? -eq 0 ]; then
+        show_message "Успешно: $1"
+    else
+        show_message "Ошибка: $1"
+        exit 1
+    fi
+}
+
+# Ввод параметров
+show_message "Введите параметры для установки Revolt"
+read -p "Введите домен (например, revolt.example.com): " REVOLT_DOMAIN
+read -p "Введите порт для Revolt (по умолчанию 3000): " REVOLT_PORT
+read -p "Введите порт для MongoDB (по умолчанию 27017): " MONGO_PORT
+read -p "Введите порт для Redis (по умолчанию 6379): " REDIS_PORT
+
+# Установка Docker и Docker Compose
+show_message "Установка Docker и Docker Compose"
+
+# Обновление системы
+sudo apt-get update
+check_success "Обновление системы"
+
+# Установка необходимых пакетов
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+check_success "Установка необходимых пакетов"
+
+# Добавление ключа Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+check_success "Добавление ключа Docker"
+
+# Добавление репозитория Docker
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+check_success "Добавление репозитория Docker"
+
+# Обновление системы после добавления репозитория
+sudo apt-get update
+check_success "Обновление системы после добавления репозитория"
+
+# Установка Docker
+sudo apt-get install -y docker-ce
+check_success "Установка Docker"
+
+# Установка Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+check_success "Установка Docker Compose"
+
+# Создание директории для Revolt
+show_message "Создание директории для Revolt"
+mkdir -p ~/revolt
+cd ~/revolt
+
+# Создание файла docker-compose.yml
+show_message "Создание файла docker-compose.yml"
+cat <<EOF > docker-compose.yml
+version: '3.8'
+
+services:
+  revolt:
+    image: revoltchat/revolt:latest
+    container_name: revolt
+    ports:
+      - "${REVOLT_PORT}:3000"
+    environment:
+      - VIRTUAL_HOST=${REVOLT_DOMAIN}
+      - LETSENCRYPT_HOST=${REVOLT_DOMAIN}
+      - LETSENCRYPT_EMAIL=admin@${REVOLT_DOMAIN}
+    depends_on:
+      - mongo
+      - redis
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mongo_data:
+  redis_data:
 EOF
 
-# Проверка наличия установленной утилиты dialog и её установка, если она отсутствует
-if ! command -v dialog &> /dev/null; then
-    echo "Утилита 'dialog' не найдена. Устанавливаем её..."
-    sudo apt-get update
-    sudo apt-get install -y dialog
-fi
+check_success "Создание файла docker-compose.yml"
 
-# Выбор языка
-lang=$(dialog --clear --backtitle "HyProject Installer" \
-    --title "Выберите язык / Choose language" \
-    --menu "Выберите язык / Choose language:" 10 40 2 \
-    1 "Русский" \
-    2 "English" 2>&1 >/dev/tty)
-clear
+# Запуск Docker Compose
+show_message "Запуск Docker Compose"
+docker-compose up -d
+check_success "Запуск Docker Compose"
 
-# Локализация текста
-if [ "$lang" == "1" ]; then
-    # Русский язык
-    lang_backtitle="HyProject Installer"
-    lang_title="Выберите панель управления или систему"
-    lang_menu="Выберите один из вариантов:"
-    lang_exit="Выход"
-    lang_pterodactyl="Pterodactyl"
-    lang_plexactyl="Plexactyl"
-    lang_control_panel="Control Panel"
-    lang_fastpanel="FastPanel"
-    lang_proxy_system="Прокси-система"
-    lang_nginx_config="Настройка Nginx"
-    lang_db_config="Настройка базы данных"
-    lang_domain="Введите доменное имя:"
-    lang_db_name="Введите имя базы данных:"
-    lang_db_user="Введите имя пользователя базы данных:"
-    lang_db_password="Введите пароль для базы данных:"
-    lang_installed="установлен."
-
-    # Установка русской локали
-    echo "Установка русской локали..."
-    sudo apt-get update
-    sudo apt-get install -y locales
-    sudo locale-gen ru_RU.UTF-8
-    sudo update-locale LANG=ru_RU.UTF-8
-    echo "Русская локаль установлена."
-else
-    # English
-    lang_backtitle="HyProject Installer"
-    lang_title="Choose a control panel or system"
-    lang_menu="Choose one of the options:"
-    lang_exit="Exit"
-    lang_pterodactyl="Pterodactyl"
-    lang_plexactyl="Plexactyl"
-    lang_control_panel="Control Panel"
-    lang_fastpanel="FastPanel"
-    lang_proxy_system="Proxy System"
-    lang_nginx_config="Nginx Configuration"
-    lang_db_config="Database Configuration"
-    lang_domain="Enter domain name:"
-    lang_db_name="Enter database name:"
-    lang_db_user="Enter database username:"
-    lang_db_password="Enter database password:"
-    lang_installed="installed."
-fi
-
-# Функция для установки Pterodactyl
-install_pterodactyl() {
-    echo "Установка Pterodactyl..."
-    # Установка зависимостей
-    sudo apt-get update
-    sudo apt-get install -y curl git unzip
-
-    # Настройка Nginx
-    nginx_config=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_nginx_config для Pterodactyl" \
-        --inputbox "$lang_domain" 10 60 2>&1 >/dev/tty)
-    clear
-
-    # Настройка базы данных
-    db_name=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_db_config для Pterodactyl" \
-        --inputbox "$lang_db_name" 10 60 2>&1 >/dev/tty)
-    clear
-
-    db_user=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_db_config для Pterodactyl" \
-        --inputbox "$lang_db_user" 10 60 2>&1 >/dev/tty)
-    clear
-
-    db_password=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_db_config для Pterodactyl" \
-        --passwordbox "$lang_db_password" 10 60 2>&1 >/dev/tty)
-    clear
-
-    # Скачивание и установка Pterodactyl
-    git clone https://github.com/pterodactyl/panel.git
-    cd panel
-    composer install --no-dev --optimize-autoloader
-    cp .env.example .env
-    php artisan key:generate --force
-
-    # Настройка .env файла
-    sed -i "s/DB_DATABASE=panel/DB_DATABASE=$db_name/" .env
-    sed -i "s/DB_USERNAME=pterodactyl/DB_USERNAME=$db_user/" .env
-    sed -i "s/DB_PASSWORD=/DB_PASSWORD=$db_password/" .env
-
-    # Настройка Nginx
-    sudo bash -c "cat > /etc/nginx/sites-available/pterodactyl.conf <<EOF
-server {
-    listen 80;
-    server_name $nginx_config;
-
-    root /var/www/pterodactyl/public;
-    index index.php;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-EOF"
-    sudo ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
-    sudo systemctl restart nginx
-
-    # Настройка базы данных
-    sudo mysql -e "CREATE DATABASE $db_name;"
-    sudo mysql -e "CREATE USER '$db_user'@'localhost' IDENTIFIED BY '$db_password';"
-    sudo mysql -e "GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';"
-    sudo mysql -e "FLUSH PRIVILEGES;"
-
-    echo "Pterodactyl $lang_installed"
-}
-
-# Функция для установки Plexactyl
-install_plexactyl() {
-    echo "Установка Plexactyl..."
-    # Установка зависимостей
-    sudo apt-get update
-    sudo apt-get install -y curl git unzip
-
-    # Настройка Nginx
-    nginx_config=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_nginx_config для Plexactyl" \
-        --inputbox "$lang_domain" 10 60 2>&1 >/dev/tty)
-    clear
-
-    # Настройка базы данных
-    db_name=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_db_config для Plexactyl" \
-        --inputbox "$lang_db_name" 10 60 2>&1 >/dev/tty)
-    clear
-
-    db_user=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_db_config для Plexactyl" \
-        --inputbox "$lang_db_user" 10 60 2>&1 >/dev/tty)
-    clear
-
-    db_password=$(dialog --clear --backtitle "$lang_backtitle" \
-        --title "$lang_db_config для Plexactyl" \
-        --passwordbox "$lang_db_password" 10 60 2>&1 >/dev/tty)
-    clear
-
-    # Скачивание и установка Plexactyl
-    git clone https://github.com/NinoviumLabs/plexactyl.git
-    cd plexactyl
-    composer install --no-dev --optimize-autoloader
-    cp .env.example .env
-    php artisan key:generate --force
-
-    # Настройка .env файла
-    sed -i "s/DB_DATABASE=plexactyl/DB_DATABASE=$db_name/" .env
-    sed -i "s/DB_USERNAME=plexactyl/DB_USERNAME=$db_user/" .env
-    sed -i "s/DB_PASSWORD=/DB_PASSWORD=$db_password/" .env
-
-    # Настройка Nginx
-    sudo bash -c "cat > /etc/nginx/sites-available/plexactyl.conf <<EOF
-server {
-    listen 80;
-    server_name $nginx_config;
-
-    root /var/www/plexactyl/public;
-    index index.php;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-EOF"
-    sudo ln -s /etc/nginx/sites-available/plexactyl.conf /etc/nginx/sites-enabled/
-    sudo systemctl restart nginx
-
-    # Настройка базы данных
-    sudo mysql -e "CREATE DATABASE $db_name;"
-    sudo mysql -e "CREATE USER '$db_user'@'localhost' IDENTIFIED BY '$db_password';"
-    sudo mysql -e "GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';"
-    sudo mysql -e "FLUSH PRIVILEGES;"
-
-    echo "Plexactyl $lang_installed"
-}
-
-# Функция для установки Control Panel
-install_control_panel() {
-    echo "Установка Control Panel..."
-    # Установка зависимостей
-    sudo apt-get update
-    sudo apt-get install -y curl git unzip
-    # Скачивание и установка Control Panel
-    git clone https://github.com/ControlPanel/ControlPanel.git
-    cd ControlPanel
-    composer install --no-dev --optimize-autoloader
-    cp .env.example .env
-    php artisan key:generate --force
-    echo "Control Panel $lang_installed"
-}
-
-# Функция для установки FastPanel
-install_fastpanel() {
-    echo "Установка FastPanel..."
-    # Установка зависимостей
-    sudo apt-get update
-    sudo apt-get install -y curl git unzip
-    # Скачивание и установка FastPanel
-    git clone https://github.com/FastPanel/FastPanel.git
-    cd FastPanel
-    composer install --no-dev --optimize-autoloader
-    cp .env.example .env
-    php artisan key:generate --force
-    echo "FastPanel $lang_installed"
-}
-
-# Функция для установки прокси-системы
-install_proxy_system() {
-    echo "Установка прокси-системы..."
-    # Установка зависимостей
-    sudo apt-get update
-    sudo apt-get install -y curl git unzip
-    # Скачивание и установка прокси-системы
-    git clone https://github.com/ProxySystem/ProxySystem.git
-    cd ProxySystem
-    composer install --no-dev --optimize-autoloader
-    cp .env.example .env
-    php artisan key:generate --force
-    echo "Прокси-система $lang_installed"
-}
-
-# Главное меню
-main_menu() {
-    while true; do
-        choice=$(dialog --clear --backtitle "$lang_backtitle" \
-            --title "$lang_title" \
-            --menu "$lang_menu" 15 60 6 \
-            1 "$lang_pterodactyl" \
-            2 "$lang_plexactyl" \
-            3 "$lang_control_panel" \
-            4 "$lang_fastpanel" \
-            5 "$lang_proxy_system" \
-            6 "$lang_exit" 2>&1 >/dev/tty)
-
-        clear
-        case $choice in
-            1) install_pterodactyl ;;
-            2) install_plexactyl ;;
-            3) install_control_panel ;;
-            4) install_fastpanel ;;
-            5) install_proxy_system ;;
-            6) exit 0 ;;
-            *) echo "Неверный выбор. Попробуйте снова." ;;
-        esac
-    done
-}
-
-# Запуск главного меню
-main_menu
+show_message "Revolt успешно установлен и настроен!"
