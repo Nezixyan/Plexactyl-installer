@@ -67,11 +67,32 @@ cat <<EOF > docker-compose.yml
 version: '3.8'
 
 services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+
+  letsencrypt-nginx-proxy-companion:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt-nginx-proxy-companion
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    depends_on:
+      - nginx-proxy
+
   revolt:
     image: revoltchat/revolt:latest
     container_name: revolt
-    ports:
-      - "${REVOLT_PORT}:3000"
     environment:
       - VIRTUAL_HOST=${REVOLT_DOMAIN}
       - LETSENCRYPT_HOST=${REVOLT_DOMAIN}
@@ -99,6 +120,9 @@ services:
 volumes:
   mongo_data:
   redis_data:
+  certs:
+  vhostd:
+  html:
 EOF
 
 check_success "Создание файла docker-compose.yml"
@@ -108,4 +132,4 @@ show_message "Запуск Docker Compose"
 docker-compose up -d
 check_success "Запуск Docker Compose"
 
-show_message "Revolt успешно установлен и настроен!"
+show_message "Revolt успешно установлен и настроен с автоматической настройкой SSL!"
